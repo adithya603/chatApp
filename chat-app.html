@@ -1,0 +1,146 @@
+<!-- npm install -g firebase-tools -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    
+    <script>
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function(tooltripTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+
+    <!-- firebase -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-analytics.js";
+
+        import { getAuth, signInAnanymously, onAuthStateChanged } from "firebase/auth";
+        import { getDatabase, ref, set, push, onValue } from "firebase/database";
+
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+      
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+          apiKey: "AIzaSyAS7xhFJc40iuWlHUkRUoEC_SWN7xxjTPU",
+          authDomain: "tempproject-c05d8.firebaseapp.com",
+          databaseURL: "https://tempproject-c05d8-default-rtdb.firebaseio.com/",
+          projectId: "tempproject-c05d8",
+          storageBucket: "tempproject-c05d8.appspot.com",
+          messagingSenderId: "35714066171",
+          appId: "1:35714066171:web:d476e8ac4accc34b12f25e",
+          measurementId: "G-XZJ1Z8B3Y6"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getDatabase();
+
+        // Function to log messages to the console for debugging (optional)
+        function logMessage(message) {
+        console.log(message);
+        }
+
+        // Function to update the chat messages on the UI
+        function updateMessages(storedMessages) {
+        const messagesList = $('#messages-ul'); // Assuming an element with ID 'messages-ul' exists
+        messagesList.empty(); // Clear existing messages
+
+        storedMessages.forEach((messageData) => {
+            const fromUserId = messageData.from;
+            const toUserId = messageData.to;
+            const storedMessage = messageData.message;
+
+            let type = "sent";
+            let bubbleClass = "from-message";
+
+            if (fromUserId !== localStorage.getItem('loggedin_user_id')) {
+            type = "received";
+            bubbleClass = "to-message";
+            }
+
+            const messageElement = $('<li class="message-bubble ' + bubbleClass + '">' +
+                                    '<p>' + storedMessage + '</p>' +
+                                    '</li>');
+
+            messagesList.append(messageElement); // Add message to the list
+        });
+
+        // Scroll to the bottom of the message list
+        messagesList.animate({ scrollTop: messagesList[0].scrollHeight }, 0);
+        }
+
+        // Function to write a new message to the Firebase database
+        function writeUserData(message) {
+        push(ref(db, '/chats'), {
+            from: localStorage.getItem('loggedin_user_id'),
+            to: localStorage.getItem('chat_user_id'),
+            message: message
+        });
+        }
+
+        // Function to filter messages based on logged-in user and update UI
+        function filterAndDisplayMessages() {
+        const messages = [];
+
+        db.ref('/chats').onValue((snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+            const childData = childSnapshot.val();
+            const isRelevantMessage = (childData.from === localStorage.getItem('chat_user_id') || childData.to === localStorage.getItem('chat_user_id')) &&
+                                        (childData.from === localStorage.getItem('loggedin_user_id') || childData.to === localStorage.getItem('loggedin_user_id'));
+
+            if (isRelevantMessage) {
+                messages.push(childData);
+            }
+            });
+
+            updateMessages(messages); // Update UI with filtered messages
+        });
+        }
+
+        // Function to handle sending a new message
+        function newMessage() {
+        const message = $('#message-input').val();
+
+        if (!message.trim()) {
+            return false; // Prevent sending empty messages
+        }
+
+        writeUserData(message);
+        $('#message-input').val(''); // Clear the input after sending
+        }
+
+        // Event listeners for sending messages
+        $('#submit').click(function() {
+        newMessage();
+        });
+
+        $(window).on('keydown', function(e) {
+        if (e.which === 13) {
+            newMessage();
+        }
+        });
+
+        // Call filterAndDisplayMessages to initialize chat display
+        filterAndDisplayMessages();
+
+
+      </script>
+</body>
+</html>
